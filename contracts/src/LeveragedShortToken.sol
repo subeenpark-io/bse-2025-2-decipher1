@@ -77,6 +77,9 @@ contract LeveragedShortToken is
     /// @notice Slippage tolerance for swaps (100 = 1%)
     uint256 public slippageTolerance;
 
+    /// @notice Test mode - bypasses Uniswap swap, uses oracle price directly
+    bool public testMode;
+
     uint256 private constant PRECISION = 1e18;
     uint256 private constant BASIS_POINTS = 10000;
 
@@ -242,11 +245,16 @@ contract LeveragedShortToken is
     function _swapUnderlyingToStable(uint256 underlyingAmount) internal returns (uint256 stableReceived) {
         if (underlyingAmount == 0) return 0;
 
-        underlyingToken.forceApprove(address(swapRouter), underlyingAmount);
-
         uint256 price = _getPrice();
         uint256 expectedStable = (underlyingAmount * price * (10 ** stableDecimals))
             / ((10 ** underlyingDecimals) * (10 ** oracleDecimals));
+
+        // Test mode: skip actual swap
+        if (testMode) {
+            return expectedStable;
+        }
+
+        underlyingToken.forceApprove(address(swapRouter), underlyingAmount);
         uint256 minOut = (expectedStable * (BASIS_POINTS - slippageTolerance)) / BASIS_POINTS;
 
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
@@ -272,8 +280,13 @@ contract LeveragedShortToken is
         uint256 price = _getPrice();
         uint256 expectedCost = (underlyingNeeded * price * (10 ** stableDecimals))
             / ((10 ** underlyingDecimals) * (10 ** oracleDecimals));
-        uint256 maxIn = (expectedCost * (BASIS_POINTS + slippageTolerance)) / BASIS_POINTS;
 
+        // Test mode: skip actual swap
+        if (testMode) {
+            return expectedCost;
+        }
+
+        uint256 maxIn = (expectedCost * (BASIS_POINTS + slippageTolerance)) / BASIS_POINTS;
         stableToken.forceApprove(address(swapRouter), maxIn);
 
         ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
@@ -403,6 +416,10 @@ contract LeveragedShortToken is
 
     function setPoolFee(uint24 _poolFee) external onlyOwner {
         poolFee = _poolFee;
+    }
+
+    function setTestMode(bool _testMode) external onlyOwner {
+        testMode = _testMode;
     }
 
     function pause() external onlyOwner {

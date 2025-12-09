@@ -76,6 +76,9 @@ contract LeveragedLongToken is
     /// @notice Slippage tolerance for swaps (100 = 1%)
     uint256 public slippageTolerance;
 
+    /// @notice Test mode - bypasses Uniswap swap, uses oracle price directly
+    bool public testMode;
+
     uint256 private constant PRECISION = 1e18;
     uint256 private constant BASIS_POINTS = 10000;
 
@@ -228,16 +231,23 @@ contract LeveragedLongToken is
     //                    SWAP FUNCTIONS
     // ═══════════════════════════════════════════════════════════════
 
-    /// @notice Swap stable → underlying via Uniswap V3
+    /// @notice Swap stable → underlying via Uniswap V3 (or mock in test mode)
     function _swapStableToUnderlying(uint256 stableAmount) internal returns (uint256 underlyingReceived) {
         if (stableAmount == 0) return 0;
 
-        stableToken.forceApprove(address(swapRouter), stableAmount);
-
-        // Calculate minimum output with slippage
+        // Calculate expected output based on oracle price
         uint256 price = _getPrice();
         uint256 expectedUnderlying = (stableAmount * (10 ** underlyingDecimals) * (10 ** oracleDecimals))
             / (price * (10 ** stableDecimals));
+
+        // Test mode: skip actual swap, just return expected amount (for testnets without liquidity)
+        if (testMode) {
+            // In test mode, we don't actually swap - just do accounting
+            // The contract should be pre-funded with underlying tokens for testing
+            return expectedUnderlying;
+        }
+
+        stableToken.forceApprove(address(swapRouter), stableAmount);
         uint256 minOut = (expectedUnderlying * (BASIS_POINTS - slippageTolerance)) / BASIS_POINTS;
 
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
@@ -254,16 +264,21 @@ contract LeveragedLongToken is
         underlyingReceived = swapRouter.exactInputSingle(params);
     }
 
-    /// @notice Swap underlying → stable via Uniswap V3
+    /// @notice Swap underlying → stable via Uniswap V3 (or mock in test mode)
     function _swapUnderlyingToStable(uint256 underlyingAmount) internal returns (uint256 stableReceived) {
         if (underlyingAmount == 0) return 0;
 
-        underlyingToken.forceApprove(address(swapRouter), underlyingAmount);
-
-        // Calculate minimum output with slippage
+        // Calculate expected output based on oracle price
         uint256 price = _getPrice();
         uint256 expectedStable = (underlyingAmount * price * (10 ** stableDecimals))
             / ((10 ** underlyingDecimals) * (10 ** oracleDecimals));
+
+        // Test mode: skip actual swap, just return expected amount
+        if (testMode) {
+            return expectedStable;
+        }
+
+        underlyingToken.forceApprove(address(swapRouter), underlyingAmount);
         uint256 minOut = (expectedStable * (BASIS_POINTS - slippageTolerance)) / BASIS_POINTS;
 
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
@@ -391,6 +406,10 @@ contract LeveragedLongToken is
 
     function setPoolFee(uint24 _poolFee) external onlyOwner {
         poolFee = _poolFee;
+    }
+
+    function setTestMode(bool _testMode) external onlyOwner {
+        testMode = _testMode;
     }
 
     function pause() external onlyOwner {
