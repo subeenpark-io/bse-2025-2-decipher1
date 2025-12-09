@@ -4,7 +4,6 @@ import { StatCard } from "@/components/shared";
 import { LPVaultCard } from "@/components/lp-vault";
 import {
   useLPVaultStats,
-  useETHPrice,
   formatTokenAmount,
   formatUSD,
   formatPercent,
@@ -19,17 +18,12 @@ export default function LPVaultPage() {
     interestRate,
     paused,
     isLoading,
-  } = useLPVaultStats();
+  } = useLPVaultStats("long");
 
-  const { price: ethPrice, isLoading: ethPriceLoading } = useETHPrice();
+  // Calculate TVL in USD (USDC is 1:1 with USD, 6 decimals)
+  const tvlUSD = totalAssets ? Number(totalAssets) / 1e6 : 0;
 
-  // Calculate TVL in USD
-  const tvlUSD =
-    totalAssets && ethPrice
-      ? (Number(totalAssets) / 1e18) * ethPrice
-      : 0;
-
-  // APY calculation (simplified - interest rate is already annualized)
+  // APY calculation (interest rate is in basis points, e.g., 500 = 5%)
   const apy = interestRate ? Number(interestRate) / 100 : 0;
 
   return (
@@ -45,7 +39,7 @@ export default function LPVaultPage() {
           )}
         </div>
         <p className="mt-2 text-foreground-muted">
-          Earn yield by providing WETH liquidity to leveraged traders
+          Earn yield by providing USDC liquidity to leveraged traders
         </p>
       </div>
 
@@ -56,8 +50,8 @@ export default function LPVaultPage() {
           <StatCard
             title="Total TVL"
             value={formatUSD(tvlUSD)}
-            subtitle={`${formatTokenAmount(totalAssets)} WETH`}
-            isLoading={isLoading || ethPriceLoading}
+            subtitle={`${formatTokenAmount(totalAssets, 6, 2)} USDC`}
+            isLoading={isLoading}
           />
           <StatCard
             title="APY"
@@ -68,12 +62,12 @@ export default function LPVaultPage() {
           <StatCard
             title="Utilization"
             value={formatPercent(utilizationRate)}
-            subtitle={`${formatTokenAmount(totalBorrowed)} borrowed`}
+            subtitle={`${formatTokenAmount(totalBorrowed, 6, 2)} borrowed`}
             isLoading={isLoading}
           />
           <StatCard
             title="Available"
-            value={`${formatTokenAmount(availableLiquidity)} WETH`}
+            value={`${formatTokenAmount(availableLiquidity, 6, 2)} USDC`}
             subtitle="For borrowing"
             isLoading={isLoading}
           />
@@ -93,21 +87,21 @@ export default function LPVaultPage() {
           <h2 className="mb-4 text-lg font-semibold">How it works</h2>
           <div className="glass-card space-y-4 p-6">
             <div>
-              <h3 className="font-medium text-accent-purple">1. Deposit WETH</h3>
+              <h3 className="font-medium text-accent-purple">1. Deposit USDC</h3>
               <p className="mt-1 text-sm text-foreground-muted">
-                Deposit your WETH into the vault and receive lpWETH shares representing your position.
+                Deposit your USDC into the vault and receive lpUSDC shares representing your position.
               </p>
             </div>
             <div>
               <h3 className="font-medium text-accent-cyan">2. Earn Yield</h3>
               <p className="mt-1 text-sm text-foreground-muted">
-                Your WETH is lent to leveraged traders who pay interest. The yield is automatically compounded.
+                Your USDC is lent to leveraged traders (ETH2X Long) who pay interest. The yield is automatically compounded.
               </p>
             </div>
             <div>
               <h3 className="font-medium text-accent-blue">3. Withdraw Anytime</h3>
               <p className="mt-1 text-sm text-foreground-muted">
-                Redeem your lpWETH shares for WETH plus earned interest at any time, subject to available liquidity.
+                Redeem your lpUSDC shares for USDC plus earned interest at any time, subject to available liquidity.
               </p>
             </div>
 

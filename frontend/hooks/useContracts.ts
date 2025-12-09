@@ -5,47 +5,52 @@ import { formatEther, formatUnits, parseAbi } from "viem";
 import { CONTRACTS } from "@/lib/contracts";
 import {
   LP_VAULT_ABI,
-  LEVERAGED_2X_TOKEN_ABI,
+  LEVERAGED_LONG_TOKEN_ABI,
+  LEVERAGED_SHORT_TOKEN_ABI,
   INDEX_FUND_ABI,
   ERC20_ABI,
 } from "@/lib/abis";
 
-// LP Vault hooks
-export function useLPVaultStats() {
+export type LeverageType = "long" | "short";
+
+// LP Vault hooks - supports both Long (USDC) and Short (WETH) vaults
+export function useLPVaultStats(type: LeverageType = "long") {
+  const vaultAddress = type === "long" ? CONTRACTS.LP_VAULT_LONG : CONTRACTS.LP_VAULT_SHORT;
+
   const { data, isLoading, error } = useReadContracts({
     contracts: [
       {
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        address: vaultAddress as `0x${string}`,
         abi: parseAbi(LP_VAULT_ABI),
         functionName: "totalAssets",
       },
       {
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        address: vaultAddress as `0x${string}`,
         abi: parseAbi(LP_VAULT_ABI),
         functionName: "totalSupply",
       },
       {
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        address: vaultAddress as `0x${string}`,
         abi: parseAbi(LP_VAULT_ABI),
         functionName: "totalBorrowed",
       },
       {
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        address: vaultAddress as `0x${string}`,
         abi: parseAbi(LP_VAULT_ABI),
         functionName: "availableLiquidity",
       },
       {
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        address: vaultAddress as `0x${string}`,
         abi: parseAbi(LP_VAULT_ABI),
         functionName: "utilizationRate",
       },
       {
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        address: vaultAddress as `0x${string}`,
         abi: parseAbi(LP_VAULT_ABI),
         functionName: "interestRate",
       },
       {
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        address: vaultAddress as `0x${string}`,
         abi: parseAbi(LP_VAULT_ABI),
         functionName: "paused",
       },
@@ -60,27 +65,32 @@ export function useLPVaultStats() {
     utilizationRate: data?.[4]?.result as bigint | undefined,
     interestRate: data?.[5]?.result as bigint | undefined,
     paused: data?.[6]?.result as boolean | undefined,
+    vaultAddress,
+    assetSymbol: type === "long" ? "USDC" : "WETH",
+    assetDecimals: type === "long" ? 6 : 18,
     isLoading,
     error,
   };
 }
 
-export function useLPVaultUserPosition() {
+export function useLPVaultUserPosition(type: LeverageType = "long") {
   const { address } = useAccount();
+  const vaultAddress = type === "long" ? CONTRACTS.LP_VAULT_LONG : CONTRACTS.LP_VAULT_SHORT;
+  const decimals = type === "long" ? 6 : 18;
 
   const { data, isLoading, error } = useReadContracts({
     contracts: [
       {
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        address: vaultAddress as `0x${string}`,
         abi: parseAbi(LP_VAULT_ABI),
         functionName: "balanceOf",
         args: address ? [address] : undefined,
       },
       {
-        address: CONTRACTS.LP_VAULT as `0x${string}`,
+        address: vaultAddress as `0x${string}`,
         abi: parseAbi(LP_VAULT_ABI),
         functionName: "convertToAssets",
-        args: [BigInt(1e18)], // 1 share
+        args: [BigInt(10 ** decimals)], // 1 share worth in asset decimals
       },
     ],
     query: {
@@ -91,45 +101,60 @@ export function useLPVaultUserPosition() {
   const shares = data?.[0]?.result as bigint | undefined;
   const sharePrice = data?.[1]?.result as bigint | undefined;
   const assetsValue =
-    shares && sharePrice ? (shares * sharePrice) / BigInt(1e18) : undefined;
+    shares && sharePrice ? (shares * sharePrice) / BigInt(10 ** decimals) : undefined;
 
   return {
     shares,
     sharePrice,
     assetsValue,
+    vaultAddress,
+    assetDecimals: decimals,
     isLoading,
     error,
   };
 }
 
-// ETH2X hooks
-export function useETH2XStats() {
+// Leveraged Token hooks - supports both Long and Short
+export function useLeveragedTokenStats(type: LeverageType = "long") {
+  const tokenAddress = type === "long" ? CONTRACTS.ETH2X_LONG : CONTRACTS.ETH2X_SHORT;
+  const abi = type === "long" ? LEVERAGED_LONG_TOKEN_ABI : LEVERAGED_SHORT_TOKEN_ABI;
+
   const { data, isLoading, error } = useReadContracts({
     contracts: [
       {
-        address: CONTRACTS.ETH2X as `0x${string}`,
-        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+        address: tokenAddress as `0x${string}`,
+        abi: parseAbi(abi),
         functionName: "totalSupply",
       },
       {
-        address: CONTRACTS.ETH2X as `0x${string}`,
-        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
-        functionName: "getCurrentNAV",
+        address: tokenAddress as `0x${string}`,
+        abi: parseAbi(abi),
+        functionName: "getCurrentNav",
       },
       {
-        address: CONTRACTS.ETH2X as `0x${string}`,
-        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
-        functionName: "getLeverageRatio",
+        address: tokenAddress as `0x${string}`,
+        abi: parseAbi(abi),
+        functionName: "leverageRatio",
       },
       {
-        address: CONTRACTS.ETH2X as `0x${string}`,
-        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+        address: tokenAddress as `0x${string}`,
+        abi: parseAbi(abi),
         functionName: "needsRebalance",
       },
       {
-        address: CONTRACTS.ETH2X as `0x${string}`,
-        abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+        address: tokenAddress as `0x${string}`,
+        abi: parseAbi(abi),
         functionName: "paused",
+      },
+      {
+        address: tokenAddress as `0x${string}`,
+        abi: parseAbi(abi),
+        functionName: "lastRebalanceTime",
+      },
+      {
+        address: tokenAddress as `0x${string}`,
+        abi: parseAbi(abi),
+        functionName: "getPrice",
       },
     ],
   });
@@ -140,17 +165,23 @@ export function useETH2XStats() {
     leverageRatio: data?.[2]?.result as bigint | undefined,
     needsRebalance: data?.[3]?.result as boolean | undefined,
     paused: data?.[4]?.result as boolean | undefined,
+    lastRebalanceTime: data?.[5]?.result as bigint | undefined,
+    oraclePrice: data?.[6]?.result as bigint | undefined,
+    tokenAddress,
+    tokenSymbol: type === "long" ? "ETH2X" : "ETH-2X",
     isLoading,
     error,
   };
 }
 
-export function useETH2XUserPosition() {
+export function useLeveragedTokenUserPosition(type: LeverageType = "long") {
   const { address } = useAccount();
+  const tokenAddress = type === "long" ? CONTRACTS.ETH2X_LONG : CONTRACTS.ETH2X_SHORT;
+  const abi = type === "long" ? LEVERAGED_LONG_TOKEN_ABI : LEVERAGED_SHORT_TOKEN_ABI;
 
   const { data, isLoading, error } = useReadContract({
-    address: CONTRACTS.ETH2X as `0x${string}`,
-    abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+    address: tokenAddress as `0x${string}`,
+    abi: parseAbi(abi),
     functionName: "balanceOf",
     args: address ? [address] : undefined,
     query: {
@@ -160,9 +191,20 @@ export function useETH2XUserPosition() {
 
   return {
     balance: data as bigint | undefined,
+    tokenAddress,
+    tokenSymbol: type === "long" ? "ETH2X" : "ETH-2X",
     isLoading,
     error,
   };
+}
+
+// Legacy aliases for backwards compatibility
+export function useETH2XStats() {
+  return useLeveragedTokenStats("long");
+}
+
+export function useETH2XUserPosition() {
+  return useLeveragedTokenUserPosition("long");
 }
 
 // Index Fund hooks
@@ -345,12 +387,14 @@ export function formatPercent(
   return `${percent.toFixed(decimals)}%`;
 }
 
-// Governance hooks
-export function useGovernanceParams() {
+// Governance hooks - supports per-fund governance
+export function useGovernanceParams(governanceAddress?: string) {
+  const govAddr = (governanceAddress || CONTRACTS.FUND_GOVERNANCE) as `0x${string}`;
+
   const { data, isLoading, error } = useReadContracts({
     contracts: [
       {
-        address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+        address: govAddr,
         abi: parseAbi([
           "function votingPeriod() view returns (uint256)",
           "function quorumPercent() view returns (uint256)",
@@ -360,7 +404,7 @@ export function useGovernanceParams() {
         functionName: "votingPeriod",
       },
       {
-        address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+        address: govAddr,
         abi: parseAbi([
           "function votingPeriod() view returns (uint256)",
           "function quorumPercent() view returns (uint256)",
@@ -370,7 +414,7 @@ export function useGovernanceParams() {
         functionName: "quorumPercent",
       },
       {
-        address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+        address: govAddr,
         abi: parseAbi([
           "function votingPeriod() view returns (uint256)",
           "function quorumPercent() view returns (uint256)",
@@ -380,7 +424,7 @@ export function useGovernanceParams() {
         functionName: "proposalThreshold",
       },
       {
-        address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+        address: govAddr,
         abi: parseAbi([
           "function votingPeriod() view returns (uint256)",
           "function quorumPercent() view returns (uint256)",
@@ -397,16 +441,18 @@ export function useGovernanceParams() {
     quorumPercent: data?.[1]?.result as bigint | undefined,
     proposalThreshold: data?.[2]?.result as bigint | undefined,
     proposalCount: data?.[3]?.result as bigint | undefined,
+    governanceAddress: govAddr,
     isLoading,
     error,
   };
 }
 
-export function useVotingPower() {
+export function useVotingPower(governanceAddress?: string) {
   const { address } = useAccount();
+  const govAddr = (governanceAddress || CONTRACTS.FUND_GOVERNANCE) as `0x${string}`;
 
   const { data, isLoading, error } = useReadContract({
-    address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+    address: govAddr,
     abi: parseAbi([
       "function getVotingPower(address account) view returns (uint256)",
     ]),
@@ -417,6 +463,7 @@ export function useVotingPower() {
 
   return {
     votingPower: data as bigint | undefined,
+    governanceAddress: govAddr,
     isLoading,
     error,
   };

@@ -1,36 +1,22 @@
 "use client";
 
-import { useReadContract } from "wagmi";
-import { parseAbi } from "viem";
 import { CheckCircle, AlertTriangle, Clock } from "lucide-react";
-import { CONTRACTS } from "@/lib/contracts";
-import { LEVERAGED_2X_TOKEN_ABI } from "@/lib/abis";
-import { useETH2XStats } from "@/hooks";
+import { useLeveragedTokenStats, type LeverageType } from "@/hooks";
 
-export function RebalanceStatus() {
-  const { needsRebalance, leverageRatio, isLoading } = useETH2XStats();
+interface RebalanceStatusProps {
+  type: LeverageType;
+}
 
-  // Get last rebalance timestamp
-  const { data: lastRebalance } = useReadContract({
-    address: CONTRACTS.ETH2X as `0x${string}`,
-    abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
-    functionName: "lastRebalance",
-  });
-
-  // Get rebalance interval
-  const { data: rebalanceInterval } = useReadContract({
-    address: CONTRACTS.ETH2X as `0x${string}`,
-    abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
-    functionName: "rebalanceInterval",
-  });
+export function RebalanceStatus({ type }: RebalanceStatusProps) {
+  const { needsRebalance, leverageRatio, lastRebalanceTime, isLoading, tokenSymbol } = useLeveragedTokenStats(type);
 
   // Calculate time since last rebalance
-  const lastRebalanceTime = lastRebalance
-    ? new Date(Number(lastRebalance) * 1000)
+  const lastRebalanceDate = lastRebalanceTime
+    ? new Date(Number(lastRebalanceTime) * 1000)
     : null;
 
-  const timeSinceRebalance = lastRebalanceTime
-    ? Math.floor((Date.now() - lastRebalanceTime.getTime()) / 1000)
+  const timeSinceRebalance = lastRebalanceDate
+    ? Math.floor((Date.now() - lastRebalanceDate.getTime()) / 1000)
     : 0;
 
   const formatTimeAgo = (seconds: number): string => {
@@ -48,13 +34,13 @@ export function RebalanceStatus() {
     return `in ${Math.floor(seconds / 86400)} days`;
   };
 
-  const nextRebalanceIn = rebalanceInterval
-    ? Number(rebalanceInterval) - timeSinceRebalance
-    : 0;
+  // MIN_REBALANCE_INTERVAL is 20 hours = 72000 seconds
+  const rebalanceIntervalSeconds = 72000;
+  const nextRebalanceIn = rebalanceIntervalSeconds - timeSinceRebalance;
 
-  // Calculate actual leverage ratio (assuming 18 decimals, ratio in basis points or similar)
+  // Calculate actual leverage ratio (stored in basis points, 20000 = 2x)
   const currentLeverage = leverageRatio
-    ? (Number(leverageRatio) / 1e18).toFixed(2)
+    ? (Number(leverageRatio) / 10000).toFixed(2)
     : "2.00";
 
   const isHealthy = !needsRebalance && Math.abs(Number(currentLeverage) - 2) < 0.2;
@@ -73,7 +59,10 @@ export function RebalanceStatus() {
 
   return (
     <div className="glass-card p-6">
-      <h3 className="mb-4 text-lg font-semibold">Rebalance Status</h3>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Rebalance Status</h3>
+        <span className="text-xs text-foreground-muted">{tokenSymbol}</span>
+      </div>
 
       <div className="space-y-4">
         {/* Status Indicator */}
@@ -120,7 +109,7 @@ export function RebalanceStatus() {
 
           <div className="flex justify-between">
             <span className="text-foreground-muted">Last Rebalance</span>
-            <span>{lastRebalanceTime ? formatTimeAgo(timeSinceRebalance) : "Never"}</span>
+            <span>{lastRebalanceDate ? formatTimeAgo(timeSinceRebalance) : "Never"}</span>
           </div>
 
           <div className="flex justify-between">

@@ -2,7 +2,6 @@
 
 import { useReadContracts, useAccount } from "wagmi";
 import { Loader2, CheckCircle, XCircle, Clock, PlayCircle } from "lucide-react";
-import { CONTRACTS } from "@/lib/contracts";
 import { useGovernanceParams } from "@/hooks";
 import { VoteCard } from "./VoteCard";
 
@@ -53,8 +52,12 @@ function StatusBadge({ status }: { status: ProposalStatus }) {
   );
 }
 
-export function ProposalList() {
-  const { proposalCount, isLoading: paramsLoading } = useGovernanceParams();
+interface ProposalListProps {
+  governanceAddress: string;
+}
+
+export function ProposalList({ governanceAddress }: ProposalListProps) {
+  const { proposalCount, isLoading: paramsLoading } = useGovernanceParams(governanceAddress);
   const { address } = useAccount();
 
   // Build contracts array for fetching all proposals
@@ -90,7 +93,7 @@ export function ProposalList() {
 
   const proposalContracts = proposalIds.flatMap((id) => [
     {
-      address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+      address: governanceAddress as `0x${string}`,
       abi: getProposalAbi,
       functionName: "getProposal" as const,
       args: [id],
@@ -139,7 +142,7 @@ export function ProposalList() {
         ) : (
           <div className="space-y-4">
             {activeProposals.map((proposal) => (
-              <VoteCard key={proposal.id.toString()} proposal={proposal} />
+              <VoteCard key={proposal.id.toString()} proposal={proposal} governanceAddress={governanceAddress} />
             ))}
           </div>
         )}

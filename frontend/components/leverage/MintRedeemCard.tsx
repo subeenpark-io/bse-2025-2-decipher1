@@ -12,10 +12,14 @@ import toast from "react-hot-toast";
 import { TokenInput } from "@/components/shared/TokenInput";
 import { TransactionButton } from "@/components/shared/TransactionButton";
 import { CONTRACTS } from "@/lib/contracts";
-import { LEVERAGED_2X_TOKEN_ABI, ERC20_ABI } from "@/lib/abis";
-import { useETH2XUserPosition, useETH2XStats, formatTokenAmount, parseError } from "@/hooks";
+import { LEVERAGED_LONG_TOKEN_ABI, LEVERAGED_SHORT_TOKEN_ABI, ERC20_ABI } from "@/lib/abis";
+import { useLeveragedTokenUserPosition, useLeveragedTokenStats, formatTokenAmount, parseError, type LeverageType } from "@/hooks";
 
 type Tab = "mint" | "redeem";
+
+interface MintRedeemCardProps {
+  type: LeverageType;
+}
 
 // Format small numbers without scientific notation
 function formatSmallNumber(num: number): string {
@@ -29,15 +33,21 @@ function formatSmallNumber(num: number): string {
   return num.toFixed(decimals);
 }
 
-export function MintRedeemCard() {
+export function MintRedeemCard({ type }: MintRedeemCardProps) {
   const [activeTab, setActiveTab] = useState<Tab>("mint");
   const [amount, setAmount] = useState("");
 
   const { address, isConnected } = useAccount();
-  const { balance: eth2xBalance } = useETH2XUserPosition();
-  const { currentNAV } = useETH2XStats();
 
-  // USDC balance (6 decimals)
+  // Get contract addresses and ABIs based on type
+  const tokenAddress = type === "long" ? CONTRACTS.ETH2X_LONG : CONTRACTS.ETH2X_SHORT;
+  const tokenAbi = type === "long" ? LEVERAGED_LONG_TOKEN_ABI : LEVERAGED_SHORT_TOKEN_ABI;
+  const tokenSymbol = type === "long" ? "ETH2X" : "ETH-2X";
+
+  const { balance: tokenBalance } = useLeveragedTokenUserPosition(type);
+  const { currentNAV } = useLeveragedTokenStats(type);
+
+  // USDC balance (6 decimals) - both long and short use USDC as collateral
   const { data: usdcBalance } = useReadContract({
     address: CONTRACTS.USDC as `0x${string}`,
     abi: parseAbi(ERC20_ABI),
@@ -46,12 +56,12 @@ export function MintRedeemCard() {
     query: { enabled: !!address },
   });
 
-  // USDC allowance
+  // USDC allowance for the specific token contract
   const { data: usdcAllowance, refetch: refetchAllowance } = useReadContract({
     address: CONTRACTS.USDC as `0x${string}`,
     abi: parseAbi(ERC20_ABI),
     functionName: "allowance",
-    args: address ? [address, CONTRACTS.ETH2X as `0x${string}`] : undefined,
+    args: address ? [address, tokenAddress as `0x${string}`] : undefined,
     query: { enabled: !!address },
   });
 
@@ -67,7 +77,7 @@ export function MintRedeemCard() {
     hash: approveHash,
   });
 
-  // Mint ETH2X
+  // Mint token
   const {
     writeContract: mint,
     isPending: isMinting,
@@ -79,7 +89,7 @@ export function MintRedeemCard() {
     hash: mintHash,
   });
 
-  // Redeem ETH2X
+  // Redeem token
   const {
     writeContract: redeem,
     isPending: isRedeeming,
@@ -150,7 +160,7 @@ export function MintRedeemCard() {
     }
   }, [isRedeemSuccess]);
 
-  // USDC has 6 decimals
+  // USDC has 6 decimals, tokens have 18 decimals
   const parsedAmount =
     activeTab === "mint"
       ? amount
@@ -165,20 +175,16 @@ export function MintRedeemCard() {
     usdcAllowance !== undefined &&
     parsedAmount > (usdcAllowance as bigint);
 
-  // Calculate expected ETH2X from mint
-  // Contract: shares = (collateralAmount * PRECISION) / currentNav
-  // collateralAmount is in 6 decimals (USDC), nav is in 6 decimals, PRECISION is 1e18
-  // So: shares = (amount * 1e6 * 1e18) / (nav) where nav is ~1e6
-  // Simplified for display: shares = amount * 1e18 / nav (when amount is in USDC units)
-  const expectedETH2X =
+  // Calculate expected tokens from mint
+  // Contract: shares = (stableAmount * PRECISION) / currentNav
+  // stableAmount is in 6 decimals (USDC), nav is in 6 decimals, PRECISION is 1e18
+  const expectedTokens =
     activeTab === "mint" && amount && currentNAV && Number(currentNAV) > 0
       ? (parseFloat(amount) * 1e6 * 1e18) / Number(currentNAV) / 1e18
       : 0;
 
   // Calculate expected USDC from redeem
   // Contract: valueInCollateral = (shares * currentNav) / PRECISION
-  // shares is in 18 decimals, nav is in 6 decimals
-  // So: value = (shares * nav) / 1e18, result in 6 decimals
   const expectedUSDC =
     activeTab === "redeem" && amount && currentNAV
       ? (parseFloat(amount) * Number(currentNAV)) / 1e6
@@ -189,7 +195,7 @@ export function MintRedeemCard() {
       address: CONTRACTS.USDC as `0x${string}`,
       abi: parseAbi(ERC20_ABI),
       functionName: "approve",
-      args: [CONTRACTS.ETH2X as `0x${string}`, parsedAmount],
+      args: [tokenAddress as `0x${string}`, parsedAmount],
     });
   };
 
@@ -197,8 +203,8 @@ export function MintRedeemCard() {
     if (!address || !parsedAmount) return;
 
     mint({
-      address: CONTRACTS.ETH2X as `0x${string}`,
-      abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+      address: tokenAddress as `0x${string}`,
+      abi: parseAbi(tokenAbi),
       functionName: "mint",
       args: [parsedAmount],
     });
@@ -208,8 +214,8 @@ export function MintRedeemCard() {
     if (!address || !parsedAmount) return;
 
     redeem({
-      address: CONTRACTS.ETH2X as `0x${string}`,
-      abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+      address: tokenAddress as `0x${string}`,
+      abi: parseAbi(tokenAbi),
       functionName: "redeem",
       args: [parsedAmount],
     });
@@ -218,8 +224,8 @@ export function MintRedeemCard() {
   const handleMaxClick = () => {
     if (activeTab === "mint" && usdcBalance) {
       setAmount(formatUnits(usdcBalance as bigint, 6));
-    } else if (activeTab === "redeem" && eth2xBalance) {
-      setAmount(formatUnits(eth2xBalance, 18));
+    } else if (activeTab === "redeem" && tokenBalance) {
+      setAmount(formatUnits(tokenBalance, 18));
     }
   };
 
@@ -230,6 +236,10 @@ export function MintRedeemCard() {
     isMintConfirming ||
     isRedeeming ||
     isRedeemConfirming;
+
+  // Direction label for exposure description
+  const exposureDirection = type === "long" ? "long" : "short";
+  const exposureColor = type === "long" ? "text-success" : "text-error";
 
   return (
     <div className="glass-card p-6">
@@ -267,11 +277,11 @@ export function MintRedeemCard() {
       <TokenInput
         value={amount}
         onChange={setAmount}
-        symbol={activeTab === "mint" ? "USDC" : "ETH2X"}
+        symbol={activeTab === "mint" ? "USDC" : tokenSymbol}
         balance={
           activeTab === "mint"
             ? formatTokenAmount(usdcBalance as bigint | undefined, 6, 2)
-            : formatTokenAmount(eth2xBalance)
+            : formatTokenAmount(tokenBalance)
         }
         onMax={handleMaxClick}
         disabled={!isConnected}
@@ -285,14 +295,14 @@ export function MintRedeemCard() {
             <span className="text-right break-all">
               ~
               {activeTab === "mint"
-                ? `${formatSmallNumber(expectedETH2X)} ETH2X`
+                ? `${formatSmallNumber(expectedTokens)} ${tokenSymbol}`
                 : `${formatSmallNumber(expectedUSDC)} USDC`}
             </span>
           </div>
           {activeTab === "mint" && (
             <div className="mt-2 flex justify-between text-sm">
-              <span className="text-foreground-muted">Leverage exposure</span>
-              <span className="text-accent-cyan text-right break-all">
+              <span className="text-foreground-muted">2x {exposureDirection} exposure</span>
+              <span className={`text-right break-all ${exposureColor}`}>
                 ${formatSmallNumber(parseFloat(amount) * 2)} worth of ETH
               </span>
             </div>
@@ -300,7 +310,7 @@ export function MintRedeemCard() {
         </div>
       )}
 
-      {/* Minimum amount warning - USDC has 6 decimals, so minimum is 0.000001 (1 wei) */}
+      {/* Minimum amount warning */}
       {activeTab === "mint" && amount && parseFloat(amount) > 0 && parsedAmount === BigInt(0) && (
         <div className="mt-4 rounded-lg bg-warning/10 p-3 text-sm text-warning">
           USDC minimum: 0.000001 (6 decimals precision)
@@ -330,7 +340,7 @@ export function MintRedeemCard() {
               loadingText="Minting..."
               disabled={!amount || parseFloat(amount) <= 0 || parsedAmount === BigInt(0)}
             >
-              Mint ETH2X
+              Mint {tokenSymbol}
             </TransactionButton>
           )
         ) : (

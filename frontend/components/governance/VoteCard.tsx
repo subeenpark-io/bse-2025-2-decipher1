@@ -11,7 +11,6 @@ import { parseAbi } from "viem";
 import toast from "react-hot-toast";
 import { ThumbsUp, ThumbsDown, Clock, PlayCircle } from "lucide-react";
 import { TransactionButton } from "@/components/shared/TransactionButton";
-import { CONTRACTS } from "@/lib/contracts";
 import { FUND_GOVERNANCE_ABI } from "@/lib/abis";
 import { formatTokenAmount, parseError } from "@/hooks";
 
@@ -29,14 +28,15 @@ interface Proposal {
 
 interface VoteCardProps {
   proposal: Proposal;
+  governanceAddress: string;
 }
 
-export function VoteCard({ proposal }: VoteCardProps) {
+export function VoteCard({ proposal, governanceAddress }: VoteCardProps) {
   const { address, isConnected } = useAccount();
 
   // Check if user has voted
   const { data: hasVoted } = useReadContract({
-    address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+    address: governanceAddress as `0x${string}`,
     abi: parseAbi([
       "function hasVoted(uint256 proposalId, address account) view returns (bool)",
     ]),
@@ -140,7 +140,7 @@ export function VoteCard({ proposal }: VoteCardProps) {
   const handleVote = (support: boolean) => {
     const fn = support ? voteFor : voteAgainst;
     fn({
-      address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+      address: governanceAddress as `0x${string}`,
       abi: parseAbi(FUND_GOVERNANCE_ABI),
       functionName: "vote",
       args: [proposal.id, support],
@@ -149,7 +149,7 @@ export function VoteCard({ proposal }: VoteCardProps) {
 
   const handleExecute = () => {
     execute({
-      address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+      address: governanceAddress as `0x${string}`,
       abi: parseAbi(FUND_GOVERNANCE_ABI),
       functionName: "execute",
       args: [proposal.id],

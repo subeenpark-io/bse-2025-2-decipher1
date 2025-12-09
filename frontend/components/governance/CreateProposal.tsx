@@ -10,17 +10,20 @@ import { parseAbi, toHex } from "viem";
 import toast from "react-hot-toast";
 import { Plus, X } from "lucide-react";
 import { TransactionButton } from "@/components/shared/TransactionButton";
-import { CONTRACTS } from "@/lib/contracts";
 import { FUND_GOVERNANCE_ABI } from "@/lib/abis";
 import { useVotingPower, useGovernanceParams, formatTokenAmount, parseError } from "@/hooks";
 
-export function CreateProposal() {
+interface CreateProposalProps {
+  governanceAddress: string;
+}
+
+export function CreateProposal({ governanceAddress }: CreateProposalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [description, setDescription] = useState("");
 
   const { isConnected } = useAccount();
-  const { votingPower } = useVotingPower();
-  const { proposalThreshold } = useGovernanceParams();
+  const { votingPower } = useVotingPower(governanceAddress);
+  const { proposalThreshold } = useGovernanceParams(governanceAddress);
 
   const canPropose =
     votingPower &&
@@ -68,7 +71,7 @@ export function CreateProposal() {
     }
 
     createProposal({
-      address: CONTRACTS.FUND_GOVERNANCE as `0x${string}`,
+      address: governanceAddress as `0x${string}`,
       abi: parseAbi(FUND_GOVERNANCE_ABI),
       functionName: "propose",
       args: [description, toHex("")],

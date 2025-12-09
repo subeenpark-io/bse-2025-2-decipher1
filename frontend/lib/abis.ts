@@ -108,23 +108,65 @@ export const LP_VAULT_ABI = [
   "function unpause() external",
 ] as const;
 
-export const LEVERAGED_2X_TOKEN_ABI = [
+export const LEVERAGED_LONG_TOKEN_ABI = [
   // Core functions
-  "function mint(uint256 collateralAmount) returns (uint256 shares)",
-  "function redeem(uint256 shares) returns (uint256 collateralReturned)",
+  "function mint(uint256 stableAmount) returns (uint256 shares)",
+  "function redeem(uint256 shares) returns (uint256 stableReturned)",
 
   // View functions
   "function balanceOf(address account) view returns (uint256)",
   "function totalSupply() view returns (uint256)",
-  "function getCurrentNAV() view returns (uint256)",
-  "function getLeverageRatio() view returns (uint256)",
-  "function getPosition(address account) view returns (uint256 collateral, uint256 borrowed, uint256 shares)",
+  "function getCurrentNav() view returns (uint256)",
+  "function getPrice() view returns (uint256)",
+  "function getStats() view returns (uint256 currentNav, uint256 price, uint256 collateral, uint256 borrowed, uint256 underlyingHeld, uint256 supply)",
+
+  // State variables
+  "function leverageRatio() view returns (uint256)",
+  "function totalCollateral() view returns (uint256)",
+  "function totalBorrowed() view returns (uint256)",
+  "function totalUnderlying() view returns (uint256)",
+  "function navPerShare() view returns (uint256)",
+  "function lastRebalanceTime() view returns (uint256)",
+  "function lastRebalancePrice() view returns (uint256)",
+  "function slippageTolerance() view returns (uint256)",
 
   // Rebalancing
-  "function lastRebalance() view returns (uint256)",
-  "function rebalanceInterval() view returns (uint256)",
   "function needsRebalance() view returns (bool)",
   "function rebalance() external",
+  "function forceRebalance() external",
+
+  // Pausable
+  "function paused() view returns (bool)",
+  "function pause() external",
+  "function unpause() external",
+] as const;
+
+export const LEVERAGED_SHORT_TOKEN_ABI = [
+  // Core functions
+  "function mint(uint256 stableAmount) returns (uint256 shares)",
+  "function redeem(uint256 shares) returns (uint256 stableReturned)",
+
+  // View functions
+  "function balanceOf(address account) view returns (uint256)",
+  "function totalSupply() view returns (uint256)",
+  "function getCurrentNav() view returns (uint256)",
+  "function getPrice() view returns (uint256)",
+  "function getStats() view returns (uint256 currentNav, uint256 price, uint256 collateral, uint256 borrowed, uint256 stableHeld, uint256 supply)",
+
+  // State variables
+  "function leverageRatio() view returns (uint256)",
+  "function totalCollateral() view returns (uint256)",
+  "function totalBorrowed() view returns (uint256)",
+  "function totalStableHeld() view returns (uint256)",
+  "function navPerShare() view returns (uint256)",
+  "function lastRebalanceTime() view returns (uint256)",
+  "function lastRebalancePrice() view returns (uint256)",
+  "function slippageTolerance() view returns (uint256)",
+
+  // Rebalancing
+  "function needsRebalance() view returns (bool)",
+  "function rebalance() external",
+  "function forceRebalance() external",
 
   // Pausable
   "function paused() view returns (bool)",
