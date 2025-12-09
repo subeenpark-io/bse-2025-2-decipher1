@@ -17,7 +17,7 @@ import {
 import { TransactionButton } from "@/components/shared/TransactionButton";
 import { StatCard } from "@/components/shared";
 import { CONTRACTS } from "@/lib/contracts";
-import { LP_VAULT_ABI, LEVERAGED_2X_TOKEN_ABI, INDEX_FUND_ABI } from "@/lib/abis";
+import { LP_VAULT_ABI, LEVERAGED_LONG_TOKEN_ABI, INDEX_FUND_ABI } from "@/lib/abis";
 import {
   useLPVaultStats,
   useETH2XStats,
@@ -47,13 +47,13 @@ export default function AdminPage() {
 
   // Check ownership for each contract
   const { data: lpVaultOwner } = useReadContract({
-    address: CONTRACTS.LP_VAULT as `0x${string}`,
+    address: CONTRACTS.LP_VAULT_LONG as `0x${string}`,
     abi: parseAbi(["function owner() view returns (address)"]),
     functionName: "owner",
   });
 
   const { data: eth2xOwner } = useReadContract({
-    address: CONTRACTS.ETH2X as `0x${string}`,
+    address: CONTRACTS.ETH2X_LONG as `0x${string}`,
     abi: parseAbi(["function owner() view returns (address)"]),
     functionName: "owner",
   });
@@ -248,7 +248,7 @@ export default function AdminPage() {
   // Handlers
   const handlePauseLPVault = () => {
     pauseLPVault({
-      address: CONTRACTS.LP_VAULT as `0x${string}`,
+      address: CONTRACTS.LP_VAULT_LONG as `0x${string}`,
       abi: parseAbi(LP_VAULT_ABI),
       functionName: "pause",
     });
@@ -256,7 +256,7 @@ export default function AdminPage() {
 
   const handleUnpauseLPVault = () => {
     unpauseLPVault({
-      address: CONTRACTS.LP_VAULT as `0x${string}`,
+      address: CONTRACTS.LP_VAULT_LONG as `0x${string}`,
       abi: parseAbi(LP_VAULT_ABI),
       functionName: "unpause",
     });
@@ -264,24 +264,24 @@ export default function AdminPage() {
 
   const handlePauseETH2X = () => {
     pauseETH2X({
-      address: CONTRACTS.ETH2X as `0x${string}`,
-      abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+      address: CONTRACTS.ETH2X_LONG as `0x${string}`,
+      abi: parseAbi(LEVERAGED_LONG_TOKEN_ABI),
       functionName: "pause",
     });
   };
 
   const handleUnpauseETH2X = () => {
     unpauseETH2X({
-      address: CONTRACTS.ETH2X as `0x${string}`,
-      abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+      address: CONTRACTS.ETH2X_LONG as `0x${string}`,
+      abi: parseAbi(LEVERAGED_LONG_TOKEN_ABI),
       functionName: "unpause",
     });
   };
 
   const handleRebalanceETH2X = () => {
     rebalanceETH2X({
-      address: CONTRACTS.ETH2X as `0x${string}`,
-      abi: parseAbi(LEVERAGED_2X_TOKEN_ABI),
+      address: CONTRACTS.ETH2X_LONG as `0x${string}`,
+      abi: parseAbi(LEVERAGED_LONG_TOKEN_ABI),
       functionName: "rebalance",
     });
   };
