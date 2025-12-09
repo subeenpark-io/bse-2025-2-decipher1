@@ -51,21 +51,46 @@ contract DeployScript is Script {
         address fundAddress = factory.createFund("Crypto Index Fund", "CIF", USDC, allocations, MANAGEMENT_FEE);
 
         console.log("Deployed to Base Sepolia:");
-        console.log("Factory:", address(factory));
-        console.log("Governance:", address(governance));
-        console.log("Initial Fund:", fundAddress);
+        console.log("IndexFund Implementation:", address(fundImplementation));
+        console.log("FundFactory Implementation:", address(factoryImplementation));
+        console.log("FundGovernance Implementation:", address(governanceImplementation));
+        console.log("FundFactory Proxy:", address(factory));
+        console.log("FundGovernance Proxy:", address(governance));
+        console.log("Initial Fund (CIF):", fundAddress);
+
+        string memory basescanUrl = "https://sepolia.basescan.org/address/";
 
         vm.writeFile(
             "deployments/base-sepolia.json",
             string(
                 abi.encodePacked(
-                    '{"network":"base-sepolia","factory":"',
-                    vm.toString(address(factory)),
-                    '","governance":"',
-                    vm.toString(address(governance)),
-                    '","initialFund":"',
-                    vm.toString(fundAddress),
-                    '"}'
+                    '{\n',
+                    '  "network": "base-sepolia",\n',
+                    '  "chainId": 84532,\n',
+                    '  "implementations": {\n',
+                    '    "IndexFund": "', vm.toString(address(fundImplementation)), '",\n',
+                    '    "FundFactory": "', vm.toString(address(factoryImplementation)), '",\n',
+                    '    "FundGovernance": "', vm.toString(address(governanceImplementation)), '"\n',
+                    '  },\n',
+                    '  "proxies": {\n',
+                    '    "FundFactory": "', vm.toString(address(factory)), '",\n',
+                    '    "FundGovernance": "', vm.toString(address(governance)), '",\n',
+                    '    "CryptoIndexFund": "', vm.toString(fundAddress), '"\n',
+                    '  },\n',
+                    '  "external": {\n',
+                    '    "SwapRouter": "', vm.toString(SWAP_ROUTER), '",\n',
+                    '    "WETH": "', vm.toString(WETH), '",\n',
+                    '    "USDC": "', vm.toString(USDC), '"\n',
+                    '  },\n',
+                    '  "verification": {\n',
+                    '    "IndexFund": "', basescanUrl, vm.toString(address(fundImplementation)), '",\n',
+                    '    "FundFactory": "', basescanUrl, vm.toString(address(factoryImplementation)), '",\n',
+                    '    "FundGovernance": "', basescanUrl, vm.toString(address(governanceImplementation)), '",\n',
+                    '    "FundFactoryProxy": "', basescanUrl, vm.toString(address(factory)), '",\n',
+                    '    "FundGovernanceProxy": "', basescanUrl, vm.toString(address(governance)), '",\n',
+                    '    "CryptoIndexFundProxy": "', basescanUrl, vm.toString(fundAddress), '"\n',
+                    '  }\n',
+                    '}'
                 )
             )
         );

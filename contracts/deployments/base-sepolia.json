@@ -1,1 +1,27 @@
-{"network":"base-sepolia","factory":"0x94D11115cA3f4cEfFCd5da79b36d87a5A29e4228","governance":"0x7AEF062954dB77C668B1648C6484fbAbf866aCDf","initialFund":"0x46428E256D482ccDe3A151608A5A2B64733692c5"}
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "implementations": {
+    "IndexFund": "0xEB5f04bC54197fD5B25600a67c7e4E135cfE57Cc",
+    "FundFactory": "0x454103C65593f2bC04d2421b0F3FFaa3b8B1Be66",
+    "FundGovernance": "0x872eA5FBaEfeA9e81313a12B877E38f570cCa1c7"
+  },
+  "proxies": {
+    "FundFactory": "0xdD1420408aB6434c1d18496d473D6832bECf3E3d",
+    "FundGovernance": "0x5844B167953b185EE5396a1bE284445071F2EC0D",
+    "CryptoIndexFund": "0x3CBD0581E6874881943b83E199eca6E23834EbC8"
+  },
+  "external": {
+    "SwapRouter": "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4",
+    "WETH": "0x4200000000000000000000000000000000000006",
+    "USDC": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  },
+  "verification": {
+    "IndexFund": "https://sepolia.basescan.org/address/0xEB5f04bC54197fD5B25600a67c7e4E135cfE57Cc",
+    "FundFactory": "https://sepolia.basescan.org/address/0x454103C65593f2bC04d2421b0F3FFaa3b8B1Be66",
+    "FundGovernance": "https://sepolia.basescan.org/address/0x872eA5FBaEfeA9e81313a12B877E38f570cCa1c7",
+    "FundFactoryProxy": "https://sepolia.basescan.org/address/0xdD1420408aB6434c1d18496d473D6832bECf3E3d",
+    "FundGovernanceProxy": "https://sepolia.basescan.org/address/0x5844B167953b185EE5396a1bE284445071F2EC0D",
+    "CryptoIndexFundProxy": "https://sepolia.basescan.org/address/0x3CBD0581E6874881943b83E199eca6E23834EbC8"
+  }
+}

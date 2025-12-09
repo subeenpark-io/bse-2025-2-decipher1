@@ -186,4 +186,114 @@ contract IndexFundTest is Test {
 
         vm.stopPrank();
     }
+
+    function testPause() public {
+        // Pause the fund
+        vm.prank(owner);
+        fund.pause();
+
+        // Try to deposit - should revert
+        vm.startPrank(user1);
+        uint256 depositAmount = 1000 * 10 ** 18;
+        usdc.approve(address(fund), depositAmount);
+
+        vm.expectRevert();
+        fund.deposit(depositAmount, user1);
+
+        vm.stopPrank();
+    }
+
+    function testPauseBlocksMint() public {
+        vm.prank(owner);
+        fund.pause();
+
+        vm.startPrank(user1);
+        usdc.approve(address(fund), 1000 * 10 ** 18);
+
+        vm.expectRevert();
+        fund.mint(100 * 10 ** 18, user1);
+
+        vm.stopPrank();
+    }
+
+    function testPauseBlocksWithdraw() public {
+        // First deposit while unpaused
+        vm.startPrank(user1);
+        uint256 depositAmount = 1000 * 10 ** 18;
+        usdc.approve(address(fund), depositAmount);
+        fund.deposit(depositAmount, user1);
+        vm.stopPrank();
+
+        // Pause the fund
+        vm.prank(owner);
+        fund.pause();
+
+        // Try to withdraw - should revert
+        vm.startPrank(user1);
+        vm.expectRevert();
+        fund.withdraw(100 * 10 ** 18, user1, user1);
+        vm.stopPrank();
+    }
+
+    function testPauseBlocksRedeem() public {
+        // First deposit while unpaused
+        vm.startPrank(user1);
+        uint256 depositAmount = 1000 * 10 ** 18;
+        usdc.approve(address(fund), depositAmount);
+        uint256 shares = fund.deposit(depositAmount, user1);
+        vm.stopPrank();
+
+        // Pause the fund
+        vm.prank(owner);
+        fund.pause();
+
+        // Try to redeem - should revert
+        vm.startPrank(user1);
+        vm.expectRevert();
+        fund.redeem(shares / 2, user1, user1);
+        vm.stopPrank();
+    }
+
+    function testPauseBlocksRebalance() public {
+        vm.prank(owner);
+        fund.pause();
+
+        vm.prank(owner);
+        bytes[] memory swapData = new bytes[](2);
+        vm.expectRevert();
+        fund.rebalance(swapData);
+    }
+
+    function testUnpause() public {
+        // Pause
+        vm.prank(owner);
+        fund.pause();
+
+        // Unpause
+        vm.prank(owner);
+        fund.unpause();
+
+        // Should be able to deposit now
+        vm.startPrank(user1);
+        uint256 depositAmount = 1000 * 10 ** 18;
+        usdc.approve(address(fund), depositAmount);
+        uint256 shares = fund.deposit(depositAmount, user1);
+        assertGt(shares, 0);
+        vm.stopPrank();
+    }
+
+    function testOnlyOwnerCanPause() public {
+        vm.prank(user1);
+        vm.expectRevert();
+        fund.pause();
+    }
+
+    function testOnlyOwnerCanUnpause() public {
+        vm.prank(owner);
+        fund.pause();
+
+        vm.prank(user1);
+        vm.expectRevert();
+        fund.unpause();
+    }
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
@@ -11,7 +12,7 @@ import "./interfaces/IIndexFund.sol";
 
 /// @title IndexFund - Multi-token index fund implementing ERC-4626
 /// @dev UUPS upgradeable, requires price oracle for production use
-contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, IIndexFund {
+contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, PausableUpgradeable, IIndexFund {
     using SafeERC20 for IERC20;
 
     TokenAllocation[] private allocations;
@@ -48,6 +49,7 @@ contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, I
         __ERC20_init(_name, _symbol);
         __ERC4626_init(IERC20(_asset));
         __Ownable_init(msg.sender);
+        __Pausable_init();
 
         managementFee = _managementFee;
         swapRouter = ISwapRouter(_swapRouter);
@@ -88,7 +90,7 @@ contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, I
         require(totalPercentage == BASIS_POINTS, "Total must be 100%");
     }
 
-    function rebalance(bytes[] calldata swapData) external override onlyOwner {
+    function rebalance(bytes[] calldata swapData) external override onlyOwner whenNotPaused {
         uint256 totalValue = totalAssets();
         uint256 allocLen = allocations.length;
 
@@ -147,17 +149,32 @@ contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, I
         return total;
     }
 
-    function deposit(uint256 assets, address receiver) public virtual override returns (uint256 shares) {
+    function deposit(uint256 assets, address receiver) public virtual override whenNotPaused returns (uint256 shares) {
         shares = super.deposit(assets, receiver);
+    }
+
+    function mint(uint256 shares, address receiver) public virtual override whenNotPaused returns (uint256 assets) {
+        assets = super.mint(shares, receiver);
     }
 
     function withdraw(uint256 assets, address receiver, address owner)
         public
         virtual
         override
+        whenNotPaused
         returns (uint256 shares)
     {
         shares = super.withdraw(assets, receiver, owner);
+    }
+
+    function redeem(uint256 shares, address receiver, address owner)
+        public
+        virtual
+        override
+        whenNotPaused
+        returns (uint256 assets)
+    {
+        assets = super.redeem(shares, receiver, owner);
     }
 
     function setSlippageTolerance(uint256 _slippageTolerance) external onlyOwner {
@@ -171,4 +188,14 @@ contract IndexFund is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, I
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    /// @notice Pause the contract, blocking deposits, withdrawals, and rebalancing
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Unpause the contract
+    function unpause() external onlyOwner {
+        _unpause();
+    }
 }

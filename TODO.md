@@ -23,9 +23,9 @@ Decentralized index fund protocol on Base Sepolia:
    - Using raw call() to swap router
    - Use typed interface calls (1 day)
 
-4. **No Pause Mechanism**
-   - Can't freeze funds during exploits
-   - Add OpenZeppelin Pausable (1 day)
+4. **No Pause Mechanism** (Resolved)
+   - Added PausableUpgradeable to IndexFund.sol
+   - pause()/unpause() owner functions with whenNotPaused on deposit/mint/withdraw/redeem/rebalance
 
 ## High Priority
 

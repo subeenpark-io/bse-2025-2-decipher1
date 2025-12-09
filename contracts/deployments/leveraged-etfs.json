@@ -1,0 +1,35 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "long": {
+    "lpVault": "0xd31362ed11BF2B598d1d7A7D6Df0CdBe5386942B",
+    "lpVaultImpl": "0x9816B87A997E56Ee74dEaDAEB1C69F410ebeF24a",
+    "token": "0x80C9cCCB66c9E0B61d72cd4c9f04ca09EF4BD7b1",
+    "tokenImpl": "0x225Fd2d108BAE1dBeb74783320Bf660fB016a0B0",
+    "mechanism": "borrow USDC, buy WETH"
+  },
+  "short": {
+    "lpVault": "0x93e6D76c6a82D8D76CeA8F7F9A102BDC020e373b",
+    "lpVaultImpl": "0x03A2bDa8Cb8295708C21b932f416fcc5c0aDB360",
+    "token": "0x93F6d09527b79af1e58be96F695451Fc9B64159f",
+    "tokenImpl": "0x4fe8d5f9D37c5aC24d198242803565D307D86CCc",
+    "mechanism": "borrow WETH, sell for USDC"
+  },
+  "config": {
+    "leverage": "2x",
+    "interestRate": "5%",
+    "poolFee": "0.3%"
+  },
+  "external": {
+    "WETH": "0x4200000000000000000000000000000000000006",
+    "USDC": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "SwapRouter": "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4",
+    "ETH_USD_Feed": "0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1"
+  },
+  "verification": {
+    "longVault": "https://sepolia.basescan.org/address/0xd31362ed11BF2B598d1d7A7D6Df0CdBe5386942B",
+    "longToken": "https://sepolia.basescan.org/address/0x80C9cCCB66c9E0B61d72cd4c9f04ca09EF4BD7b1",
+    "shortVault": "https://sepolia.basescan.org/address/0x93e6D76c6a82D8D76CeA8F7F9A102BDC020e373b",
+    "shortToken": "https://sepolia.basescan.org/address/0x93F6d09527b79af1e58be96F695451Fc9B64159f"
+  }
+}
