@@ -15,9 +15,10 @@ import { useVotingPower, useGovernanceParams, formatTokenAmount, parseError } fr
 
 interface CreateProposalProps {
   governanceAddress: string;
+  fundSymbol?: string;
 }
 
-export function CreateProposal({ governanceAddress }: CreateProposalProps) {
+export function CreateProposal({ governanceAddress, fundSymbol = "FUND" }: CreateProposalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [description, setDescription] = useState("");
 
@@ -122,17 +123,17 @@ export function CreateProposal({ governanceAddress }: CreateProposalProps) {
             <div className="rounded-lg bg-white/5 p-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-foreground-muted">Your voting power</span>
-                <span>{formatTokenAmount(votingPower)} IDX</span>
+                <span>{formatTokenAmount(votingPower)} {fundSymbol}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-foreground-muted">Required threshold</span>
-                <span>{formatTokenAmount(proposalThreshold)} IDX</span>
+                <span>{formatTokenAmount(proposalThreshold)} {fundSymbol}</span>
               </div>
             </div>
 
             {!canPropose && (
               <div className="rounded-lg bg-warning/10 p-3 text-sm text-warning">
-                You need at least {formatTokenAmount(proposalThreshold)} IDX to create a proposal.
+                You need at least {formatTokenAmount(proposalThreshold)} {fundSymbol} to create a proposal.
               </div>
             )}
 
