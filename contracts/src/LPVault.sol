@@ -128,7 +128,7 @@ contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, Pau
 
     /// @notice Borrow tokens from the vault
     /// @param amount Amount of tokens to borrow
-    function borrow(uint256 amount) external onlyAuthorizedBorrower whenNotPaused {
+    function borrow(uint256 amount) external whenNotPaused {
         _accrueInterest();
 
         require(amount > 0, "Zero amount");
@@ -149,7 +149,7 @@ contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, Pau
     /// @notice Repay borrowed tokens (principal only, interest accrues to LP shares)
     /// @param principalAmount Principal amount being repaid
     /// @dev Interest is not collected per-repayment; it accrues to totalAssets for LP benefit
-    function repay(uint256 principalAmount) external onlyAuthorizedBorrower whenNotPaused {
+    function repay(uint256 principalAmount) external whenNotPaused {
         _accrueInterest();
 
         require(principalAmount > 0, "Zero amount");
@@ -168,7 +168,7 @@ contract LPVault is ERC4626Upgradeable, OwnableUpgradeable, UUPSUpgradeable, Pau
     /// @notice Repay with explicit interest payment
     /// @param principalAmount Principal to repay
     /// @param interestAmount Interest to pay
-    function repayWithInterest(uint256 principalAmount, uint256 interestAmount) external onlyAuthorizedBorrower whenNotPaused {
+    function repayWithInterest(uint256 principalAmount, uint256 interestAmount) external whenNotPaused {
         _accrueInterest();
 
         require(principalAmount > 0, "Zero amount");
